@@ -1,0 +1,37 @@
+{
+    "taskGroups": [
+        {
+            "taskSpec": {
+                "runnables": [
+                    {
+                        "script": {
+                            "text": "echo Hello world from task ${BATCH_TASK_INDEX}."
+                        }
+                    }
+                ]
+            },
+            "taskCount": 3,
+            "parallelism": 1
+        }
+    ],
+    "allocationPolicy": {
+        "instances": [
+            {
+                "installGpuDrivers": true,
+                "policy": {
+                    "accelerators": [
+                        {
+                            "type": "GPU_TYPE",
+                            "count": "nvidia-tesla-p4"
+                        }
+                    ]
+                }
+            }
+        ],
+        "location": {
+            "allowedLocations": [
+                "ALLOWED_LOCATIONS"
+            ]
+        }
+    }
+}

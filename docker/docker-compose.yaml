@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mmpose:
+    image: mmpose
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    volumes:
+      - ./vis_results:/mmpose/vis_results
+      - ./pred_results:/mmpose/pred_results
+    ports:
+      - "8080:8080"
+    environment:
+      - IMAGE_URL=https://user-images.githubusercontent.com/87690686/137440639-fb08603d-9a35-474e-b65f-46b5c06b68d6.mp4
+      - WEBHOOK_URL=https://script.google.com/macros/s/AKfycbx25RhbUQ3_Otyy1Jm1B3JDuH0jZUUAl56HObeH02mYzTPebMYj2Vy9v3tL6FW1gFwq/exec
+    shm_size: 8g
