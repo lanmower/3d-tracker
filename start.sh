@@ -1,0 +1,1 @@
+python body3d_img2pose_demo.py rtmdet_m_640-8xb32_coco-person.py https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth configs/rtmw3d-l_8xb64_cocktail14-384x288.py rtmw3d-l_cock14-0d4ad840_20240422.pth --input https://myapp.lan.247420.xyz/output.mp4 --output-root /mmpose/vis_results/
