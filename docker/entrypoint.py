@@ -1,7 +1,6 @@
 import os
 import subprocess
 import json
-import base64
 import requests
 import uuid
 from flask import Flask, request, jsonify
@@ -27,15 +26,10 @@ def process_image(image_url, task_id):
     base_output_dir = Path("vis_results") / task_id
     pose3d_output_dir = base_output_dir / "pose3d"
     pred_results_dir = base_output_dir / "predictions"
-    converted_output_dir = Path("converted_outputs") / task_id
 
     # Create output directories
     pose3d_output_dir.mkdir(parents=True, exist_ok=True)
     pred_results_dir.mkdir(parents=True, exist_ok=True)
-    converted_output_dir.mkdir(parents=True, exist_ok=True)
-
-    # List to store the names of the output files
-    output_files = []
 
     try:
         # Define the inference commands
@@ -66,7 +60,7 @@ def process_image(image_url, task_id):
         # Get the list of JSON output files generated in the prediction directory
         output_files = list(pred_results_dir.glob("*.json"))
 
-        # Process and convert results only for the generated files
+        # Process results from the JSON prediction files
         combined_results = combine_and_convert_results(output_files)
 
         # Call webhook with results
@@ -78,7 +72,6 @@ def process_image(image_url, task_id):
 def combine_and_convert_results(output_files):
     """Combine and process the JSON prediction files."""
     combined_data = {}
-    base64_images = {}
 
     # Process only JSON output files
     for file in output_files:
@@ -86,10 +79,9 @@ def combine_and_convert_results(output_files):
             with open(file, "r") as json_file:
                 data = json.load(json_file)
                 base_filename = file.stem
-                combined_data[base_filename] = data
+                combined_data[base_filename] = data  # Capture the prediction data
 
-    combined_data["base64_images"] = base64_images
-    return combined_data
+    return combined_data  # Return the combined prediction data
 
 def call_webhook(data):
     """Send the processed data to the webhook."""
@@ -115,6 +107,5 @@ def handle_process_image():
 if __name__ == "__main__":
     # Ensure base directories exist
     Path("vis_results").mkdir(exist_ok=True)
-    Path("converted_outputs").mkdir(exist_ok=True)
 
     app.run(host="0.0.0.0", port=8080)
