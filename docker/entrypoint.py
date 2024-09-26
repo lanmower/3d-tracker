@@ -63,7 +63,8 @@ def convert_image(input_path, output_path):
 
 def convert_video(input_path, output_path):
     """Convert a video to MP4 format using FFmpeg."""
-    subprocess.run(command, check=True)
+    if os.path.exists(output_path):
+        os.remove(output_path)
     command = ['ffmpeg', '-i', input_path, '-c:v', 'mpeg4', '-y', output_path]
     subprocess.run(command, check=True)
 
@@ -118,8 +119,6 @@ def handle_process_image():
     image_url = request.args.get('image_url')
     if not image_url:
         return jsonify({"error": "image_url parameter is required"}), 400
-    subprocess.run(['rm', f"{PRED_RESULTS_DIR}/*", '-R'], check=False)
-    subprocess.run(['rm', f"{CONVERTED_OUTPUT_DIR}/*", '-R'], check=False)
 
     # Start processing the image
     executor.submit(process_image, image_url)
