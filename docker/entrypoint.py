@@ -63,6 +63,9 @@ def process_image(image_url, task_id):
         # Process results from the JSON prediction files
         combined_results = combine_and_convert_results(output_files)
 
+        # Print the combined results for debugging
+        print("Combined Results:", combined_results)
+
         # Call webhook with results
         call_webhook(combined_results)
 
@@ -79,6 +82,7 @@ def combine_and_convert_results(output_files):
             with open(file, "r") as json_file:
                 data = json.load(json_file)
                 base_filename = file.stem
+                print(f"Read data from {file}: {data}")  # Debug print for each file
                 combined_data[base_filename] = data  # Capture the prediction data
 
     return combined_data  # Return the combined prediction data
