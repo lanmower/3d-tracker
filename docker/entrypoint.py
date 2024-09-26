@@ -119,6 +119,8 @@ def handle_process_image():
     image_url = request.args.get('image_url')
     if not image_url:
         return jsonify({"error": "image_url parameter is required"}), 400
+    subprocess.run(['rm', f"{PRED_RESULTS_DIR}/*", '-R'], check=False)
+    subprocess.run(['rm', f"{CONVERTED_OUTPUT_DIR}/*", '-R'], check=False)
 
     # Start processing the image
     executor.submit(process_image, image_url)
