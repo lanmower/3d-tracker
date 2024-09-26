@@ -19,10 +19,8 @@ WEBHOOK_URL = os.getenv(
 # Global ThreadPoolExecutor for managing inference tasks
 executor = ThreadPoolExecutor(max_workers=3)
 
-
 def run_inference(command):
     subprocess.run(command, check=True)
-
 
 def process_image(image_url, task_id):
     # Define unique directories for this task
@@ -35,6 +33,9 @@ def process_image(image_url, task_id):
     pose3d_output_dir.mkdir(parents=True, exist_ok=True)
     pred_results_dir.mkdir(parents=True, exist_ok=True)
     converted_output_dir.mkdir(parents=True, exist_ok=True)
+
+    # List to store the names of the output files
+    output_files = []
 
     try:
         # Define the inference commands
@@ -62,10 +63,11 @@ def process_image(image_url, task_id):
         # Wait for all inference tasks to complete
         wait(futures)
 
-        # Process and convert results
-        combined_results = combine_and_convert_results(
-            pred_results_dir, pose3d_output_dir, converted_output_dir
-        )
+        # Get the list of output files generated in the output directory
+        output_files = list(pose3d_output_dir.glob("*")) + list(pred_results_dir.glob("*.json"))
+
+        # Process and convert results only for the generated files
+        combined_results = combine_and_convert_results(output_files, converted_output_dir)
 
         # Call webhook with results
         call_webhook(combined_results)
@@ -88,23 +90,16 @@ def convert_video(input_path, output_path):
     subprocess.run(command, check=True)
 
 
-def combine_and_convert_results(pred_results_dir, pose3d_output_dir, converted_output_dir):
+def combine_and_convert_results(output_files, converted_output_dir):
     """Combine results and convert found images and videos to compatible formats."""
     combined_data = {}
     base64_media = {}
 
-    # Combine predictions
-    for file in pred_results_dir.glob("*.json"):
-        with open(file, "r") as json_file:
-            data = json.load(json_file)
-            base_filename = file.stem
-            combined_data[base_filename] = data
-
-    # Convert and combine images and videos
-    for file in pose3d_output_dir.rglob("*"):
+    # Process only output files that were generated
+    for file in output_files:
         if file.is_file():
             base_filename = file.stem
-            if file.suffix.lower() in [".png", ".jpg", ".jpeg"]:
+            if file.suffix.lower() in [".png", ".jpg", ".jpeg"] :
                 output_path = converted_output_dir / f"{base_filename}.jpg"
                 convert_image(file, output_path)
                 # Base64 encode the converted image
