@@ -63,7 +63,6 @@ def convert_image(input_path, output_path):
 
 def convert_video(input_path, output_path):
     """Convert a video to MP4 format using FFmpeg."""
-    command = ['rm', output_path]
     subprocess.run(command, check=True)
     command = ['ffmpeg', '-i', input_path, '-c:v', 'mpeg4', '-y', output_path]
     subprocess.run(command, check=True)
