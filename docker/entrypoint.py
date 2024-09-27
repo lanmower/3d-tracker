@@ -30,6 +30,8 @@ def process_image(image_url, task_id):
     # Create output directories
     pred_results_dir.mkdir(parents=True, exist_ok=True)
 
+    json_output_file = pred_results_dir / f"results.json"
+
     try:
         # Define the inference commands without visualization
         commands = [
@@ -58,43 +60,12 @@ def process_image(image_url, task_id):
         # Wait for all inference tasks to complete
         wait(futures)
 
-        # Get the list of JSON output files generated in the prediction directory
-        output_files = list(pred_results_dir.glob("*.json"))
-
-        # Process results from the JSON prediction files
-        combined_results = combine_and_convert_results(output_files)
-
-        # Print the combined results for debugging
-        print("Combined Results:", combined_results)
-
-        # Call webhook with results
-        call_webhook(combined_results)
+        # Return the path of the generated JSON predictions file
+        return str(json_output_file)
 
     except subprocess.CalledProcessError as e:
         print("Error occurred during inference: " + str(e))
-
-def combine_and_convert_results(output_files):
-    """Combine and process the JSON prediction files."""
-    combined_data = {}
-
-    # Process only JSON output files
-    for file in output_files:
-        if file.is_file() and file.suffix.lower() == ".json":
-            with open(file, "r") as json_file:
-                data = json.load(json_file)
-                base_filename = file.stem
-                print(f"Read data from {file}: {data}")  # Debug print for each file
-                combined_data[base_filename] = data  # Capture the prediction data
-
-    return combined_data  # Return the combined prediction data
-
-def call_webhook(data):
-    """Send the processed data to the webhook."""
-    try:
-        response = requests.post(WEBHOOK_URL, json=data)
-        print("Webhook response:", response.status_code, response.text)
-    except Exception as e:
-        print("Error calling webhook:", str(e))
+        return None
 
 @app.route("/process_image", methods=["GET"])
 def handle_process_image():
@@ -105,9 +76,13 @@ def handle_process_image():
     # Generate a unique task ID
     task_id = str(uuid.uuid4())
 
-    # Start processing the image
-    executor.submit(process_image, image_url, task_id)
-    return jsonify({"message": "Image processing started", "task_id": task_id}), 202
+    # Start processing the image and get the JSON output file path
+    json_file_path = executor.submit(process_image, image_url, task_id).result()
+
+    if json_file_path:
+        return jsonify({"message": "Image processing completed", "result_file": json_file_path}), 202
+    else:
+        return jsonify({"error": "Failed to process image"}), 500
 
 if __name__ == "__main__":
     # Ensure base directories exist
