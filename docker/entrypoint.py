@@ -13,7 +13,7 @@ app = Flask(__name__)
 PRED_RESULTS_DIR = "vis_results"
 
 # Set up your webhook URL
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://script.google.com/macros/s/AKfycbx25RhbUQ3_Otyy1Jm1B3JDuH0jZUUAl56HObeH02mYzTPebMYj2Vy9v3tL6FW1gFwq/exec")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://nxmqazntnbzpkhmzwmue.supabase.co/functions/v1/image")
 
 # Global ThreadPoolExecutor for managing inference tasks
 executor = ThreadPoolExecutor(max_workers=3)
