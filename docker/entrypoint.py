@@ -59,17 +59,17 @@ def process_image(image_url, task_id):
         # Make sure enough time for the processes to finish before checking the output
         executor.shutdown(wait=True)
 
-        # Get the specific JSON output file generated in the prediction directory
-        output_file = pred_results_dir / "specific_output.json"  # Adjust this to your specific expected output file name
+        # Get the specific JSON output file generated in the predictions directory
+        output_file = pose3d_output_dir / "results_" + Path(image_url).stem + ".json"
 
-        # Process results from the specific JSON prediction file
+        # Check if the specific output file exists
         if output_file.is_file():
+            # Process results from the specific JSON prediction file
             combined_results = combine_and_convert_results([output_file])
             print("Combined Results:", combined_results)
 
             # Call webhook with results
             call_webhook(combined_results)
-
         else:
             print(f"No output file found at: {output_file}")
 
