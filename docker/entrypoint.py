@@ -48,7 +48,7 @@ def process_image(image_url, task_id):
                 "--input",
                 image_url,
                 "--output-root",
-                str(pose3d_output_dir),
+                str(pred_results_dir),  
             ]
         ]
 
