@@ -42,31 +42,30 @@ def process_image(image_url):
         # Run inference command
         run_inference(command)
 
-        # Get the latest prediction JSON file
-        latest_json = get_latest_prediction(output_dir)
+        # Generate a unique name for the results JSON
+        json_filename = f'results_{random_filename}.json'
+        json_file_path = os.path.join(output_dir, json_filename)
 
-        # If a JSON file exists, send it via webhook
-        if latest_json:
-            call_webhook(latest_json)
-        else:
-            print("No JSON file found for webhook.")
+        # Rename the old JSON file to the new unique name
+        for f in os.listdir(output_dir):
+            if f.endswith('.json'):
+                old_json_file_path = os.path.join(output_dir, f)
+                os.rename(old_json_file_path, json_file_path)
+                print(f"Renamed JSON file to: {json_filename}")
+                break
+
+        # Load the renamed JSON file
+        with open(json_file_path, "r") as json_file:
+            data = json.load(json_file)
+            print("Loaded JSON data:", data)
+
+        # Send the data via webhook
+        call_webhook(data)
 
     except subprocess.CalledProcessError as e:
         print("Error occurred during inference: " + str(e))
-
-def get_latest_prediction(output_dir):
-    """Get the latest prediction JSON file."""
-    json_files = [f for f in os.listdir(output_dir) if f.endswith('.json')]
-    if not json_files:
-        return None
-    latest_json_file = max(json_files, key=lambda f: os.path.getctime(os.path.join(output_dir, f)))
-    
-    print("Latest prediction JSON file found:", latest_json_file)
-    
-    with open(os.path.join(output_dir, latest_json_file), "r") as json_file:
-        data = json.load(json_file)
-        print("Loaded JSON data:", data)  # Log the loaded data
-        return data
+    except Exception as e:
+        print("An error occurred:", str(e))
 
 def call_webhook(data):
     """Send the processed data to the webhook."""
