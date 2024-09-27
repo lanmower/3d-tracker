@@ -25,15 +25,13 @@ def run_inference(command):
 def process_image(image_url, task_id):
     # Define unique directories for this task
     base_output_dir = Path("vis_results") / task_id
-    pose3d_output_dir = base_output_dir / "pose3d"
     pred_results_dir = base_output_dir / "predictions"
 
     # Create output directories
-    pose3d_output_dir.mkdir(parents=True, exist_ok=True)
     pred_results_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Define the inference commands
+        # Define the inference commands without visualization
         commands = [
             [
                 "python",
@@ -48,7 +46,9 @@ def process_image(image_url, task_id):
                 "--input",
                 image_url,
                 "--output-root",
-                str(pred_results_dir),  
+                str(pred_results_dir),
+                "--show",  # Remove or set to False to disable visualization
+                "False"    # Explicitly disable show argument
             ]
         ]
 
