@@ -26,11 +26,9 @@ def process_image(image_url, task_id):
     # Define unique directories for this task
     base_output_dir = Path("vis_results") / task_id
     pose3d_output_dir = base_output_dir / "pose3d"
-    pred_results_dir = base_output_dir / "predictions"
-
+    
     # Create output directories
     pose3d_output_dir.mkdir(parents=True, exist_ok=True)
-    pred_results_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         # Define the inference commands
@@ -56,11 +54,12 @@ def process_image(image_url, task_id):
         for cmd in commands:
             executor.submit(run_inference, cmd)
 
-        # Make sure enough time for the processes to finish before checking the output
+        # Wait for all inference tasks to complete
         executor.shutdown(wait=True)
 
-        # Get the specific JSON output file generated in the predictions directory
-        output_file = pose3d_output_dir / "results_" + Path(image_url).stem + ".json"
+        # Specify the expected JSON output file name
+        output_file = pose3d_output_dir / "results_one.json"  # Based on your output log
+        print(f"Looking for output file: {output_file}")
 
         # Check if the specific output file exists
         if output_file.is_file():
