@@ -19,7 +19,16 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://script.google.com/macros/s/AKfyc
 executor = ThreadPoolExecutor(max_workers=3)
 
 def run_inference(command):
-    subprocess.run(command, check=True)
+    try:
+        # Run the command and capture output and error
+        result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)  # Set timeout to 300 seconds
+        print("Inference Output:", result.stdout)
+        return result
+    except subprocess.CalledProcessError as e:
+        print("Error occurred during inference:", e.stderr)
+    except subprocess.TimeoutExpired:
+        print("Inference timed out.")
+        return None
 
 def download_file(image_url, output_dir, new_filename):
     """Download the image file and rename it to a new filename."""
@@ -43,19 +52,15 @@ def list_files_in_directory(directory):
 
 def process_image(image_url):
     try:
-        # Generate a random filename to prevent collisions
         random_filename = f"{uuid.uuid4()}.mp4"  # Assuming the input is a video file
         output_dir = PRED_RESULTS_DIR
 
-        # Create output directory for this processing
         os.makedirs(output_dir, exist_ok=True)
 
-        # Download the image/video file with the new random filename
         downloaded_file_path = download_file(image_url, output_dir, random_filename)
         if downloaded_file_path is None:
             return  # Exit if download failed
 
-        # Define the inference commands
         command = [
             "python", "body3d_img2pose_demo.py",
             "rtmdet_m_640-8xb32_coco-person.py",
@@ -68,22 +73,22 @@ def process_image(image_url):
         # Run inference command
         run_inference(command)
 
-        # Get the actual prediction JSON file created during inference
-        json_file_name = f"results_{random_filename.split('.')[0]}.json"  # Constructing the JSON file name based on random filename
-        json_file_path = os.path.join(output_dir, json_file_name)
-
         # List all files in the output directory after inference
         list_files_in_directory(output_dir)
 
+        json_file_name = f"results_{random_filename.split('.')[0]}.json"
+        json_file_path = os.path.join(output_dir, json_file_name)
+
         if os.path.exists(json_file_path):
+            print(f"JSON prediction file found: {json_file_path}")
             with open(json_file_path, "r") as json_file:
                 json_data = json.load(json_file)
                 call_webhook(json_data)
         else:
             print("Expected JSON file not found:", json_file_path)
 
-    except subprocess.CalledProcessError as e:
-        print("Error occurred during inference: " + str(e))
+    except Exception as e:
+        print("An unexpected error occurred: ", str(e))
 
 def call_webhook(data):
     """Send the processed data to the webhook."""
