@@ -48,6 +48,8 @@ def process_image(image_url):
         # If a JSON file exists, send it via webhook
         if latest_json:
             call_webhook(latest_json)
+        else:
+            print("No JSON file found for webhook.")
 
     except subprocess.CalledProcessError as e:
         print("Error occurred during inference: " + str(e))
@@ -65,7 +67,10 @@ def call_webhook(data):
     """Send the processed data to the webhook."""
     try:
         response = requests.post(WEBHOOK_URL, json=data)
-        print("Webhook response:", response.status_code, response.text)
+        if response.status_code == 200:
+            print("Webhook sent successfully:", response.status_code, response.text)
+        else:
+            print("Webhook response error:", response.status_code, response.text)
     except Exception as e:
         print("Error calling webhook:", str(e))
 
