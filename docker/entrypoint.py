@@ -14,6 +14,7 @@ WEBHOOK_URL = os.getenv(
     "WEBHOOK_URL",
     "https://script.google.com/macros/s/AKfycbx25RhbUQ3_Otyy1Jm1B3JDuH0jZUUAl56HObeH02mYzTPebMYj2Vy9v3tL6FW1gFwq/exec",
 )
+print('starting flask')
 
 # Global ThreadPoolExecutor for managing inference tasks
 executor = ThreadPoolExecutor(max_workers=3)
@@ -45,9 +46,9 @@ def process_image(image_url, task_id):
                 "--disable-norm-pose-2d",
                 "--save-predictions",
                 "--input",
-                image_url,
-                "--output-root",
-                str(pose3d_output_dir),
+                image_url#,
+                #"--output-root",
+                #str(pose3d_output_dir),
             ]
         ]
 
