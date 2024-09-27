@@ -61,21 +61,23 @@ def get_latest_prediction(output_dir):
         return None
     latest_json_file = max(json_files, key=lambda f: os.path.getctime(os.path.join(output_dir, f)))
     
-    # Log the name of the latest JSON file found
     print("Latest prediction JSON file found:", latest_json_file)
     
     with open(os.path.join(output_dir, latest_json_file), "r") as json_file:
-        return json.load(json_file)
+        data = json.load(json_file)
+        print("Loaded JSON data:", data)  # Log the loaded data
+        return data
 
 def call_webhook(data):
     """Send the processed data to the webhook."""
     try:
+        print("Sending data to webhook...")
         response = requests.post(WEBHOOK_URL, json=data)
         if response.status_code == 200:
             print("Webhook sent successfully:", response.status_code, response.text)
         else:
             print("Webhook response error:", response.status_code, response.text)
-    except Exception as e:
+    except requests.RequestException as e:
         print("Error calling webhook:", str(e))
 
 @app.route('/process_image', methods=['GET'])
