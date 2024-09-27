@@ -47,7 +47,7 @@ def process_image(image_url, task_id):
                 "--save-predictions",
                 "--input",
                 image_url,#,
-                'show',#"--output-root",
+                '--show',#"--output-root",
                 #str(pose3d_output_dir),
             ]
         ]
