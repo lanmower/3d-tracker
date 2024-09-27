@@ -46,8 +46,8 @@ def process_image(image_url, task_id):
                 "--disable-norm-pose-2d",
                 "--save-predictions",
                 "--input",
-                image_url#,
-                #"--output-root",
+                image_url,#,
+                'show',#"--output-root",
                 #str(pose3d_output_dir),
             ]
         ]
