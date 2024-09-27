@@ -48,9 +48,7 @@ def process_image(image_url, task_id):
                 "--input",
                 image_url,
                 "--output-root",
-                str(pred_results_dir),
-                "--show",  # Remove or set to False to disable visualization
-                "False"    # Explicitly disable show argument
+                str(pred_results_dir)
             ]
         ]
 
