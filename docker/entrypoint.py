@@ -4,7 +4,7 @@ import json
 import requests
 import uuid
 from flask import Flask, request, jsonify
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, Future
 from pathlib import Path
 
 app = Flask(__name__)
@@ -22,7 +22,7 @@ executor = ThreadPoolExecutor(max_workers=3)
 def run_inference(command):
     subprocess.run(command, check=True)
 
-def process_image(image_url, task_id):
+def process_image(image_url: str, task_id: str) -> dict:
     # Define unique directories for this task
     base_output_dir = Path("vis_results") / task_id
     pose3d_output_dir = base_output_dir / "pose3d"
@@ -50,32 +50,26 @@ def process_image(image_url, task_id):
             ]
         ]
 
-        # Submit inference command to executor
+        # Submit the inference command to executor
         for cmd in commands:
             executor.submit(run_inference, cmd)
 
         # Wait for all inference tasks to complete
-        executor.shutdown(wait=True)
+        # Instead of calling shutdown, just wait for task completion
+        output_file = pose3d_output_dir / "results_one.json"  # Expected output file
 
-        # Specify the expected JSON output file name
-        output_file = pose3d_output_dir / "results_one.json"  # Based on your output log
-        print(f"Looking for output file: {output_file}")
+        while not output_file.is_file():
+            pass  # Wait until the file is created
 
-        # Check if the specific output file exists
-        if output_file.is_file():
-            # Read and return processed results
-            with open(output_file, "r") as json_file:
-                processed_data = json.load(json_file)
-                print("Processed Data:", processed_data)
-                
-                # Call webhook with results
-                call_webhook(processed_data)
+        # Read and return processed results
+        with open(output_file, "r") as json_file:
+            processed_data = json.load(json_file)
+            print("Processed Data:", processed_data)
+            
+            # Call webhook with results
+            call_webhook(processed_data)
 
-                # Return only the processed data instead of whole path
-                return processed_data
-        else:
-            print(f"No output file found at: {output_file}")
-            return {"error": "No output file found"}
+            return processed_data
 
     except subprocess.CalledProcessError as e:
         print("Error occurred during inference: " + str(e))
@@ -99,10 +93,10 @@ def handle_process_image():
     task_id = str(uuid.uuid4())
 
     # Start processing the image
-    future = executor.submit(process_image, image_url, task_id)
-    processed_result = future.result()  # Block until the future is done
-
-    return jsonify(processed_result), 202
+    future: Future = executor.submit(process_image, image_url, task_id)
+    
+    # Return immediately, result to be processed in the future
+    return jsonify({"message": "Image processing started", "task_id": task_id}), 202
 
 if __name__ == "__main__":
     # Ensure base directories exist
