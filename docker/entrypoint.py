@@ -33,6 +33,14 @@ def download_file(image_url, output_dir, new_filename):
         print(f"Error downloading file: {e}")
         return None
 
+def list_files_in_directory(directory):
+    """List all files in the given directory."""
+    try:
+        files = os.listdir(directory)
+        print("Files in directory:", files)
+    except Exception as e:
+        print(f"Error listing files in directory: {e}")
+
 def process_image(image_url):
     try:
         # Generate a random filename to prevent collisions
@@ -63,7 +71,10 @@ def process_image(image_url):
         # Get the actual prediction JSON file created during inference
         json_file_name = f"results_{random_filename.split('.')[0]}.json"  # Constructing the JSON file name based on random filename
         json_file_path = os.path.join(output_dir, json_file_name)
-        
+
+        # List all files in the output directory after inference
+        list_files_in_directory(output_dir)
+
         if os.path.exists(json_file_path):
             with open(json_file_path, "r") as json_file:
                 json_data = json.load(json_file)
