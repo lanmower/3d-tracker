@@ -60,6 +60,10 @@ def get_latest_prediction(output_dir):
     if not json_files:
         return None
     latest_json_file = max(json_files, key=lambda f: os.path.getctime(os.path.join(output_dir, f)))
+    
+    # Log the name of the latest JSON file found
+    print("Latest prediction JSON file found:", latest_json_file)
+    
     with open(os.path.join(output_dir, latest_json_file), "r") as json_file:
         return json.load(json_file)
 
