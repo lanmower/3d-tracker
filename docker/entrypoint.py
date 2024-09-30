@@ -72,7 +72,6 @@ def process_image(image_url):
             "https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth",
             "configs/rtmw3d-l_8xb64_cocktail14-384x288.py",
             "rtmw3d-l_cock14-0d4ad840_20240422.pth", 
-            "--disable-norm-pose-2d", 
             "--save-predictions", 
             "--input", downloaded_file_path,
             "--output-root", output_dir,
