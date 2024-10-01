@@ -2,126 +2,78 @@ import os
 import subprocess
 import json
 import requests
-import uuid
 from flask import Flask, request, jsonify
-from concurrent.futures import ThreadPoolExecutor
-import urllib.request
+from concurrent.futures import ThreadPoolExecutor, wait
+import uuid   # Import uuid for generating unique filenames
 
 app = Flask(__name__)
 
-# Define output directories
+POSE3D_OUTPUT_DIR = "vis_results"
 PRED_RESULTS_DIR = "vis_results"
 
-# Set up your webhook URL
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://nxmqazntnbzpkhmzwmue.supabase.co/functions/v1/image")
-
-# Global ThreadPoolExecutor for managing inference tasks
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://script.google.com/macros/s/AKfycbx25RhbUQ3_Otyy1Jm1B3JDuH0jZUUAl56HObeH02mYzTPebMYj2Vy9v3tL6FW1gFwq/exec")
 executor = ThreadPoolExecutor(max_workers=3)
 
 def run_inference(command):
-    try:
-        print(f"Running inference with command: {command}")
-        # Run the command and capture output and error
-        result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)  # Set timeout to 300 seconds
-        print("Inference Output:", result.stdout)
-        return result
-    except subprocess.CalledProcessError as e:
-        print("Error occurred during inference:", e.stderr)
-        return None
-    except subprocess.TimeoutExpired:
-        print("Inference timed out.")
-        return None
+    subprocess.run(command, check=True)
 
-def download_file(image_url, output_dir, new_filename):
-    """Download the image file and rename it to a new filename."""
-    try:
-        print(f"Downloading file from URL: {image_url} to {output_dir}/{new_filename}")
-        response = urllib.request.urlopen(image_url)
-        with open(os.path.join(output_dir, new_filename), 'wb') as out_file:
-            out_file.write(response.read())
-        print(f"Downloaded and saved file as: {new_filename}")
-        return os.path.join(output_dir, new_filename)
-    except Exception as e:
-        print(f"Error downloading file: {e}")
-        return None
-
-def list_files_in_directory(directory):
-    """List all files in the given directory."""
-    try:
-        files = os.listdir(directory)
-        print("Files in directory:", files)
-    except Exception as e:
-        print(f"Error listing files in directory: {e}")
+def download_image(image_url, filename):
+    """Download the image from the given URL and save it with the provided filename."""
+    response = requests.get(image_url)
+    if response.status_code == 200:
+        with open(filename, 'wb') as file:
+            file.write(response.content)
+    else:
+        raise Exception(f"Failed to download image, status code: {response.status_code}")
 
 def process_image(image_url):
+    os.makedirs(POSE3D_OUTPUT_DIR, exist_ok=True)
+    os.makedirs(PRED_RESULTS_DIR, exist_ok=True)
+
+    # Generate a unique filename for the image
+    random_filename = f"{uuid.uuid4()}.jpg"
+    image_path = os.path.join(PRED_RESULTS_DIR, random_filename)
+
     try:
-        print(f"Started processing image: {image_url}")
-        random_filename = f"{uuid.uuid4()}.mp4"  # Assuming the input is a video file
-        output_dir = PRED_RESULTS_DIR
+        # Download the image
+        download_image(image_url, image_path)
 
-        os.makedirs(output_dir, exist_ok=True)
-
-        downloaded_file_path = download_file(image_url, output_dir, random_filename)
-        if downloaded_file_path is None:
-            print("Download failed, exiting process_image.")
-            return  # Exit if download failed
-
-        command = [
-            "python", "body3d_img2pose_demo.py",
-            "rtmdet_m_640-8xb32_coco-person.py",
-            "https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth",
-            "configs/rtmw3d-l_8xb64_cocktail14-384x288.py",
-            "rtmw3d-l_cock14-0d4ad840_20240422.pth", 
-            "--save-predictions", 
-            "--input", downloaded_file_path,
-            "--output-root", output_dir,
+        # Prepare the command to run inference using the downloaded image
+        commands = [
+            [
+                "python", "body3d_img2pose_demo.py",
+                "rtmdet_m_640-8xb32_coco-person.py",
+                "https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth",
+                "configs/rtmw3d-l_8xb64_cocktail14-384x288.py",
+                "rtmw3d-l_cock14-0d4ad840_20240422.pth", "--disable-rebase-keypoint", "--disable-norm-pose-2d", "--save-predictions", "--input", image_path,
+                "--output-root", POSE3D_OUTPUT_DIR,
+            ]
         ]
+        futures = [executor.submit(run_inference, cmd) for cmd in commands]
+        wait(futures)
+        call_webhook()
 
-        # Run inference command
-        result = run_inference(command)
-
-        # List all files in the output directory after inference
-        list_files_in_directory(output_dir)
-
-        json_file_name = f"results_{random_filename.split('.')[0]}.json"
-        json_file_path = os.path.join(output_dir, json_file_name)
-
-        if os.path.exists(json_file_path):
-            print(f"JSON prediction file found: {json_file_path}")
-            with open(json_file_path, "r") as json_file:
-                json_data = json.load(json_file)
-                print(f"Loaded JSON data: {json_data}")
-                call_webhook(json_data)
-        else:
-            print("Expected JSON file not found:", json_file_path)
-
+    except subprocess.CalledProcessError as e:
+        print("Error occurred during inference: " + str(e))
     except Exception as e:
-        print("An unexpected error occurred: ", str(e))
+        print("Error downloading the image: " + str(e))
 
-def call_webhook(data):
-    """Send the processed data to the webhook."""
+def call_webhook():
+    """Send a simple message to the webhook."""
+    message = {"status": "Image processing completed"}
     try:
-        print("Sending data to webhook...")
-        response = requests.post(WEBHOOK_URL, json=data)
-        print(f"Webhook response status: {response.status_code}, response text: {response.text}")
-        if response.status_code == 200:
-            print("Webhook sent successfully:", response.status_code, response.text)
-        else:
-            print("Webhook response error:", response.status_code, response.text)
-    except requests.RequestException as e:
+        response = requests.post(WEBHOOK_URL, json=message)
+        print("Webhook response:", response.status_code, response.text)
+    except Exception as e:
         print("Error calling webhook:", str(e))
 
 @app.route('/process_image', methods=['GET'])
 def handle_process_image():
     image_url = request.args.get('image_url')
     if not image_url:
-        print("Error: image_url parameter is required")
         return jsonify({"error": "image_url parameter is required"}), 400
-
-    print(f"Received request to process image: {image_url}")
-    # Start processing the image
     executor.submit(process_image, image_url)
-    return jsonify({"message": "Image processing started"}), 202
+    return jsonify({"message": "Image processing started 321"}), 202
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
